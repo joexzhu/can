@@ -207,11 +207,14 @@ parameter BRP = 2*(`CAN_TIMING0_BRP + 1);
   reg         wb_rst_i;
   reg   [7:0] wb_dat_i;
   wire  [7:0] wb_dat_o;
+  wire  [7:0] wb_dat2_o;
   reg         wb_cyc_i;
   reg         wb_stb_i;
+  reg         wb_stb2_i;
   reg         wb_we_i;
   reg   [7:0] wb_adr_i;
   wire        wb_ack_o;
+  wire        wb_ack2_o;
   reg         wb_free;
 `else
   reg         rst_i;
@@ -295,12 +298,12 @@ can_top i_can_top2
   .wb_clk_i(wb_clk_i),
   .wb_rst_i(wb_rst_i),
   .wb_dat_i(wb_dat_i),
-  .wb_dat_o(wb_dat_o),
+  .wb_dat_o(wb_dat2_o),
   .wb_cyc_i(wb_cyc_i),
-  .wb_stb_i(wb_stb_i),
+  .wb_stb_i(wb_stb2_i),
   .wb_we_i(wb_we_i),
   .wb_adr_i(wb_adr_i),
-  .wb_ack_o(wb_ack_o),
+  .wb_ack_o(wb_ack2_o),
 `else
   .cs_can_i(cs_can2),
   .rst_i(rst_i),
@@ -378,6 +381,7 @@ begin
     wb_dat_i = 'hz;
     wb_cyc_i = 0;
     wb_stb_i = 0;
+    wb_stb2_i = 0;
     wb_we_i = 'hz;
     wb_adr_i = 'hz;
     wb_free = 1;
@@ -487,14 +491,14 @@ begin
 //  test_reset_mode;              // test currently switched off
 //  bus_off_test;               // test currently switched off
 //  forced_bus_off;             // test currently switched off
-//  send_frame_basic;           // test currently switched on
+ send_frame_basic;           // test currently switched on
 //  send_frame_extended;        // test currently switched off
 //  self_reception_request;       // test currently switched off
 //  manual_frame_basic;         // test currently switched off
 //  manual_frame_ext;           // test currently switched off
 //    error_test;
 //    register_test;
-    bus_off_recovery_test;
+    // bus_off_recovery_test;
 
 
 /*
@@ -2636,16 +2640,16 @@ task read_register2;
       cs_can = 1;
       wb_adr_i = reg_addr;
       wb_cyc_i = 1;
-      wb_stb_i = 1;
+      wb_stb2_i = 1;
       wb_we_i = 0;
-      wait (wb_ack_o);
-      $display("(%0t) Reading register [%0d] = 0x%0x", $time, wb_adr_i, wb_dat_o);
-      data = wb_dat_o;
+      wait (wb_ack2_o);
+      $display("(%0t) Reading register [%0d] = 0x%0x", $time, wb_adr_i, wb_dat2_o);
+      data = wb_dat2_o;
       @ (posedge wb_clk_i);
       #1; 
       wb_adr_i = 'hz;
       wb_cyc_i = 0;
-      wb_stb_i = 0;
+      wb_stb2_i = 0;
       wb_we_i = 'hz;
       cs_can = 0;
       wb_free = 1;
@@ -2694,15 +2698,15 @@ task write_register2;
       wb_adr_i = reg_addr;
       wb_dat_i = reg_data;
       wb_cyc_i = 1;
-      wb_stb_i = 1;
+      wb_stb2_i = 1;
       wb_we_i = 1;
-      wait (wb_ack_o);
+      wait (wb_ack2_o);
       @ (posedge wb_clk_i);
       #1; 
       wb_adr_i = 'hz;
       wb_dat_i = 'hz;
       wb_cyc_i = 0;
-      wb_stb_i = 0;
+      wb_stb2_i = 0;
       wb_we_i = 'hz;
       cs_can = 0;
       wb_free = 1;
