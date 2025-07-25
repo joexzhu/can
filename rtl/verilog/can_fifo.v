@@ -471,61 +471,96 @@ end
 `else
 `ifdef XILINX_RAM
 
-  RAMB4_S8_S8 fifo
+RPL_RAMB4_S8_S8 fifo (
+  .clka(clk),    // input wire clka
+  .ena(1'b1),      // input wire ena
+  .wea(wr & (~fifo_full)),      // input wire [0 : 0] wea
+  .addra({3'h0, wr_pointer}),  // input wire [5 : 0] addra
+  .dina(data_in),    // input wire [7 : 0] dina
+  .clkb(clk),    // input wire clkb
+  .enb(1'b1),      // input wire enb
+  .addrb({3'h0, read_address}),  // input wire [5 : 0] addrb
+  .doutb(data_out)  // output wire [7 : 0] doutb
+);
+
+  /*RPL_RAMB4_S8_S8 fifo
   (
-    .DOA(),
+//    .DOA(),
     .DOB(data_out),
     .ADDRA({3'h0, wr_pointer}),
     .CLKA(clk),
     .DIA(data_in),
     .ENA(1'b1),
-    .RSTA(1'b0),
+//    .RSTA(1'b0),
     .WEA(wr & (~fifo_full)),
     .ADDRB({3'h0, read_address}),
     .CLKB(clk),
-    .DIB(8'h0),
+//    .DIB(8'h0),
     .ENB(1'b1),
-    .RSTB(1'b0),
+//    .RSTB(1'b0),
     .WEB(1'b0)
-  );
+  );*/
 
 
-  RAMB4_S4_S4 info_fifo
+RPL_RAMB4_S4_S4 info_fifo (
+  .clka(clk),    // input wire clka
+  .ena(1'b1),      // input wire ena
+  .wea(write_length_info & (~info_full) | initialize_memories),      // input wire [0 : 0] wea
+  .addra({4'h0, wr_info_pointer}),  // input wire [5 : 0] addra
+  .dina(len_cnt & {4{~initialize_memories}}),    // input wire [3 : 0] dina
+  .clkb(clk),    // input wire clkb
+  .enb(1'b1),      // input wire enb
+  .addrb({4'h0, rd_info_pointer}),  // input wire [5 : 0] addrb
+  .doutb(length_info)  // output wire [3 : 0] doutb
+);
+
+  /*RPL_RAMB4_S4_S4 info_fifo
   (
-    .DOA(),
+//    .DOA(),
     .DOB(length_info),
     .ADDRA({4'h0, wr_info_pointer}),
     .CLKA(clk),
     .DIA(len_cnt & {4{~initialize_memories}}),
     .ENA(1'b1),
-    .RSTA(1'b0),
+//    .RSTA(1'b0),
     .WEA(write_length_info & (~info_full) | initialize_memories),
     .ADDRB({4'h0, rd_info_pointer}),
     .CLKB(clk),
-    .DIB(4'h0),
+//    .DIB(4'h0),
     .ENB(1'b1),
-    .RSTB(1'b0),
+//    .RSTB(1'b0),
     .WEB(1'b0)
-  );
+  );*/
 
-
-  RAMB4_S1_S1 overrun_fifo
+RPL_RAMB4_S1_S1 overrun_fifo (
+  .clka(clk),    // input wire clka
+  .ena(1'b1),      // input wire ena
+  .wea(write_length_info & (~info_full) | initialize_memories),      // input wire [0 : 0] wea
+  .addra({6'h0, wr_info_pointer}),  // input wire [5 : 0] addra
+  .dina((latch_overrun | (wr & fifo_full)) & (~initialize_memories)),    // input wire [0 : 0] dina
+  .clkb(clk),    // input wire clkb
+  .enb(1'b1),      // input wire enb
+  .addrb({6'h0, rd_info_pointer}),  // input wire [5 : 0] addrb
+  .doutb(overrun)  // output wire [0 : 0] doutb
+);
+/*
+  RPL_RAMB4_S1_S1 overrun_fifo
   (
-    .DOA(),
+//    .DOA(),
     .DOB(overrun),
     .ADDRA({6'h0, wr_info_pointer}),
     .CLKA(clk),
     .DIA((latch_overrun | (wr & fifo_full)) & (~initialize_memories)),
     .ENA(1'b1),
-    .RSTA(1'b0),
+//    .RSTA(1'b0),
     .WEA(write_length_info & (~info_full) | initialize_memories),
     .ADDRB({6'h0, rd_info_pointer}),
     .CLKB(clk),
-    .DIB(1'h0),
+//    .DIB(1'h0),
     .ENB(1'b1),
-    .RSTB(1'b0),
+//    .RSTB(1'b0),
     .WEB(1'b0)
-  );
+  );*/
 
 
 `else
