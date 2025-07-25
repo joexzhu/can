@@ -848,7 +848,8 @@ begin
 end
 
 
-assign clkout = clock_off ? 1'b1 : ((&cd)? clk : clkout_tmp);
+// assign clkout = clock_off ? 1'b1 : ((&cd)? clk : clkout_tmp);
+assign clkout = 1'b1;
 
 
 
