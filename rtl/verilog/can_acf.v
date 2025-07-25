@@ -168,9 +168,9 @@ wire          match_sf_ext;
 wire          match_df_std;
 wire          match_df_ext;
 
-
+/* should be (incoming_ID & mask) == (acceptance_ID & mask) → accept */
 // Working in basic mode. ID match for standard format (11-bit ID).
-assign match =        ( (id[3]  == acceptance_code_0[0] | acceptance_mask_0[0] ) &
+/* assign match =        ( (id[3]  == acceptance_code_0[0] | acceptance_mask_0[0] ) &
                         (id[4]  == acceptance_code_0[1] | acceptance_mask_0[1] ) &
                         (id[5]  == acceptance_code_0[2] | acceptance_mask_0[2] ) &
                         (id[6]  == acceptance_code_0[3] | acceptance_mask_0[3] ) &
@@ -178,7 +178,8 @@ assign match =        ( (id[3]  == acceptance_code_0[0] | acceptance_mask_0[0] )
                         (id[8]  == acceptance_code_0[5] | acceptance_mask_0[5] ) &
                         (id[9]  == acceptance_code_0[6] | acceptance_mask_0[6] ) &
                         (id[10] == acceptance_code_0[7] | acceptance_mask_0[7] )
-                      );
+                      ); */
+   assign match = ((id[10:3] & acceptance_mask_0 ) == ( acceptance_code_0 & acceptance_mask_0 ));
 
 
 // Working in extended mode. ID match for standard format (11-bit ID). Using single filter.
