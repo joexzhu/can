@@ -363,7 +363,7 @@ assign tx = tx_tmp1 & tx_tmp2;
 initial
 begin
   clk=0;
-  //forever #20 clk = ~clk;
+  // forever #20 clk = ~clk;
   forever #31.25 clk = ~clk;
 end
 
@@ -439,35 +439,39 @@ begin
 
   // Set Clock Divider register
 //  extended_mode = 1'b1;
-//  write_register(8'd31, {extended_mode, 3'h0, 1'b0, 3'h0});   // Setting the normal mode (not extended)
+  write_register(8'd31, {extended_mode, 3'h0, 1'b0, 3'h0});   // Setting the normal mode (not extended)
   write_register2(8'd31, {extended_mode, 3'h0, 1'b0, 3'h0});   // Setting the normal mode (not extended)
 
 
   // Set Acceptance Code and Acceptance Mask registers (their address differs for basic and extended mode
 
-  /* Set Acceptance Code and Acceptance Mask registers
-  write_register(8'd16, 8'ha6); // acceptance code 0
-  write_register(8'd17, 8'hb0); // acceptance code 1
-  write_register(8'd18, 8'h12); // acceptance code 2
-  write_register(8'd19, 8'h30); // acceptance code 3
-  write_register(8'd20, 8'hff); // acceptance mask 0
-  write_register(8'd21, 8'hff); // acceptance mask 1
-  write_register(8'd22, 8'hff); // acceptance mask 2
-  write_register(8'd23, 8'hff); // acceptance mask 3
+  /* Set Acceptance Code and Acceptance Mask registers */
+  write_register(8'd04, 8'h00); // acceptance code 0
+  write_register(8'd05, 8'hFF); // acceptance code 0
+  // write_register(8'd16, 8'ha6); // acceptance code 0
+  // write_register(8'd17, 8'hb0); // acceptance code 1
+  // write_register(8'd18, 8'h12); // acceptance code 2
+  // write_register(8'd19, 8'h3f); // acceptance code 3
+  // write_register(8'd20, 8'h00); // acceptance mask 0
+  // write_register(8'd21, 8'h00); // acceptance mask 1
+  // write_register(8'd22, 8'h00); // acceptance mask 2
+  // write_register(8'd23, 8'h00); // acceptance mask 3
 
-  write_register2(8'd16, 8'ha6); // acceptance code 0
-  write_register2(8'd17, 8'hb0); // acceptance code 1
-  write_register2(8'd18, 8'h12); // acceptance code 2
-  write_register2(8'd19, 8'h30); // acceptance code 3
-  write_register2(8'd20, 8'hff); // acceptance mask 0
-  write_register2(8'd21, 8'hff); // acceptance mask 1
-  write_register2(8'd22, 8'hff); // acceptance mask 2
-  write_register2(8'd23, 8'hff); // acceptance mask 3
-*/
+  write_register2(8'd04, 8'h01); // acceptance code 0
+  write_register2(8'd05, 8'hFF); // acceptance code 0
+  // write_register2(8'd16, 8'ha6); // acceptance code 0
+  // write_register2(8'd17, 8'hb0); // acceptance code 1
+  // write_register2(8'd18, 8'h12); // acceptance code 2
+  // write_register2(8'd19, 8'h3F); // acceptance code 3
+  // write_register2(8'd20, 8'h00); // acceptance mask 0
+  // write_register2(8'd21, 8'h00); // acceptance mask 1
+  // write_register2(8'd22, 8'h00); // acceptance mask 2
+  // write_register2(8'd23, 8'h00); // acceptance mask 3
+
 
   // Set Acceptance Code and Acceptance Mask registers
-  write_register(8'd4, 8'he8); // acceptance code
-  write_register(8'd5, 8'h0f); // acceptance mask
+  // write_register(8'd4, 8'he8); // acceptance code
+  // write_register(8'd5, 8'h0f); // acceptance mask
   
   #10;
   repeat (1000) @ (posedge clk);
@@ -491,7 +495,8 @@ begin
 //  test_reset_mode;              // test currently switched off
 //  bus_off_test;               // test currently switched off
 //  forced_bus_off;             // test currently switched off
- send_frame_basic;           // test currently switched on
+//  send_frame_basic;           // test currently switched on
+ send_frame_testBox;
 //  send_frame_extended;        // test currently switched off
 //  self_reception_request;       // test currently switched off
 //  manual_frame_basic;         // test currently switched off
@@ -1695,6 +1700,88 @@ task bus_off_test;    // Testbench sends a frame
   end
 endtask   // bus_off_test
 
+task send_frame_testBox;    // CAN IP core sends frames
+  begin
+
+    write_register(8'd10, 8'hea); // Writing ID[10:3] = 0xea
+    write_register(8'd11, 8'h28); // Writing ID[2:0] = 0x1, rtr = 0, length = 8
+    write_register(8'd12, 8'h56); // data byte 1
+    write_register(8'd13, 8'h78); // data byte 2
+    write_register(8'd14, 8'h9a); // data byte 3
+    write_register(8'd15, 8'hbc); // data byte 4
+    write_register(8'd16, 8'hde); // data byte 5
+    write_register(8'd17, 8'hf0); // data byte 6
+    write_register(8'd18, 8'h0f); // data byte 7
+    write_register(8'd19, 8'hed); // data byte 8
+
+
+    write_register2(8'd0, {7'h0, (`CAN_MODE_RESET)});
+    write_register2(8'd4, 8'hea); // acceptance code 0
+    write_register2(8'd5, 8'h00); // acceptance mask 0
+    write_register2(8'd0, {7'h0, ~(`CAN_MODE_RESET)});
+
+    // Enable irqs (basic mode)
+    write_register(8'd0, 8'h1e);
+
+
+  
+    fork
+
+      // begin
+      //   #1100;
+      //   $display("\n\nStart receiving data from CAN bus");
+      //   receive_frame(0, 0, {26'h00000e8, 3'h1}, 4'h1, 15'h30bb); // mode, rtr, id, length, crc
+      //   receive_frame(0, 0, {26'h00000e8, 3'h1}, 4'h2, 15'h2da1); // mode, rtr, id, length, crc
+      //   receive_frame(0, 0, {26'h00000ee, 3'h1}, 4'h0, 15'h6cea); // mode, rtr, id, length, crc
+      //   receive_frame(0, 0, {26'h00000e8, 3'h1}, 4'h2, 15'h2da1); // mode, rtr, id, length, crc
+      //   receive_frame(0, 0, {26'h00000ee, 3'h1}, 4'h2, 15'h7b4a); // mode, rtr, id, length, crc
+      //   receive_frame(0, 0, {26'h00000ee, 3'h1}, 4'h1, 15'h00c5); // mode, rtr, id, length, crc
+      // end
+
+      begin
+        tx_request_command;
+      end
+
+      begin
+        wait (can_testbench.i_can_top.i_can_bsp.go_tx)        // waiting for tx to start
+        wait (~can_testbench.i_can_top.i_can_bsp.need_to_tx)  // waiting for tx to finish
+        tx_request_command;                                   // start another tx
+      end
+
+      begin
+        // Transmitting acknowledge (for first packet)
+        wait (can_testbench.i_can_top.i_can_bsp.tx_state & can_testbench.i_can_top.i_can_bsp.rx_ack & can_testbench.i_can_top.i_can_bsp.tx_point);
+        #1 rx = 0;
+        wait (can_testbench.i_can_top.i_can_bsp.rx_ack_lim & can_testbench.i_can_top.i_can_bsp.tx_point);
+        #1 rx = 1;
+
+        // Transmitting acknowledge (for second packet)
+        wait (can_testbench.i_can_top.i_can_bsp.tx_state & can_testbench.i_can_top.i_can_bsp.rx_ack & can_testbench.i_can_top.i_can_bsp.tx_point);
+        #1 rx = 0;
+        wait (can_testbench.i_can_top.i_can_bsp.rx_ack_lim & can_testbench.i_can_top.i_can_bsp.tx_point);
+        #1 rx = 1;
+      end
+
+
+    join
+
+    read_receive_buffer2;
+    release_rx_buffer_command;
+    release_rx_buffer_command;
+    read_receive_buffer2;
+    release_rx_buffer_command;
+    read_receive_buffer2;
+
+    #200000;
+
+    read_receive_buffer2;
+
+    // Read irq register
+    read_register2(8'd3, tmp_data);
+    #1000;
+
+  end
+endtask   // send_frame_testBox
 
 
 task send_frame_basic;    // CAN IP core sends frames
@@ -2643,7 +2730,7 @@ task read_register2;
       wb_stb2_i = 1;
       wb_we_i = 0;
       wait (wb_ack2_o);
-      $display("(%0t) Reading register [%0d] = 0x%0x", $time, wb_adr_i, wb_dat2_o);
+      $display("(%0t) Reading register B [%0d] = 0x%0x", $time, wb_adr_i, wb_dat2_o);
       data = wb_dat2_o;
       @ (posedge wb_clk_i);
       #1; 
@@ -2673,7 +2760,7 @@ task read_register2;
       port_0_en = 0;
       rd2_i = 1;
       #158;
-      $display("(%0t) Reading register [%0d] = 0x%0x", $time, can_testbench.i_can_top.addr_latched, port_0_i);
+      $display("(%0t) Reading register B [%0d] = 0x%0x", $time, can_testbench.i_can_top.addr_latched, port_0_i);
       data = port_0_i;
       #1;
       rd2_i = 0;
@@ -2760,6 +2847,26 @@ task read_receive_buffer;
   end
 endtask
 
+task read_receive_buffer2;
+  integer i;
+  begin
+    $display("\n\n(%0t)", $time);
+    if(extended_mode)   // Extended mode
+      begin
+        for (i=8'd16; i<=8'd28; i=i+1)
+          read_register2(i, tmp_data);
+        //if (can_testbench.i_can_top.i_can_bsp.i_can_fifo.overrun)
+        //  $display("\nWARNING: Above packet was received with overrun.");
+      end
+    else
+      begin
+        for (i=8'd20; i<=8'd29; i=i+1)
+          read_register2(i, tmp_data);
+        //if (can_testbench.i_can_top.i_can_bsp.i_can_fifo.overrun)
+        //  $display("\nWARNING: Above packet was received with overrun.");
+      end
+  end
+endtask
 
 task release_rx_buffer_command;
   begin
