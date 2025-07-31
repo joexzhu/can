@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_simple_bsp.v                                                   ////
+////  can_simple_bsp.v                                            ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the CAN Protocol Controller            ////
@@ -114,7 +114,7 @@ module can_simple_bsp
   tx_err_cnt,
   transmit_status,
   receive_status,
-  tx_successful,
+  go_tx_succeed,
   need_to_tx,
   overrun,
   info_empty,
@@ -162,8 +162,8 @@ module can_simple_bsp
   /* End: Tx data registers */
   
   // RX Data
-  data_rcvd,
-  data_rcvd_valid,
+  rx_data_o,
+  rx_dvalid_o,
 
   /* Tx signal */
   tx,
@@ -173,7 +173,7 @@ module can_simple_bsp
   go_overload_frame,
   go_error_frame,
   go_tx,
-  go_tx_fail,
+  go_tx_failed,
   send_ack
 
 
@@ -190,8 +190,8 @@ input         tx_point;
 input         hard_sync;
 
 
-output        reg [7:0] data_rcvd [0:9];
-output        reg data_rcvd_valid;
+output        [79:0] rx_data_o;
+output        reg rx_dvalid_o;
 
 input         reset_mode;
 input         listen_only_mode;
@@ -239,7 +239,7 @@ output  [8:0] rx_err_cnt;
 output  [8:0] tx_err_cnt;
 output        transmit_status;
 output        receive_status;
-output        tx_successful;
+output        go_tx_succeed;
 output        need_to_tx;
 output        overrun;
 output        info_empty;
@@ -297,7 +297,7 @@ output        bus_off_on;
 output        go_overload_frame;
 output        go_error_frame;
 output        go_tx;
-output        go_tx_fail;
+output        go_tx_failed;
 output        send_ack;
 
 /* Bist */
@@ -554,7 +554,7 @@ assign ack_err = rx_ack & sample_point & sampled_bit & tx_state & (~self_test_mo
 assign bit_err = (tx_state | error_frame | overload_frame | rx_ack) & sample_point & (tx != sampled_bit) & (~bit_err_exc1) & (~bit_err_exc2) & (~bit_err_exc3) & (~bit_err_exc4) & (~bit_err_exc5) & (~bit_err_exc6) & (~reset_mode);
 assign bit_err_exc1 = tx_state & arbitration_field & tx;
 assign bit_err_exc2 = rx_ack & tx;
-assign bit_err_exc3 = error_frame & node_error_passive & (error_cnt1 < 3'd7);
+assign bit_err_exc3 = error_frame /* & node_error_passive */ & (error_cnt1 < 3'd7);
 assign bit_err_exc4 = (error_frame & (error_cnt1 == 3'd7) & (~enable_error_cnt2)) | (overload_frame & (overload_cnt1 == 3'd7) & (~enable_overload_cnt2));
 assign bit_err_exc5 = (error_frame & (error_cnt2 == 3'd7)) | (overload_frame & (overload_cnt2 == 3'd7));
 assign bit_err_exc6 = (eof_cnt == 3'd6) & rx_eof & (~transmitter); 
@@ -1204,6 +1204,8 @@ begin
 end
 
 reg [4:0] wr_counter;
+reg [7:0] data_rcvd [0:9];
+reg wr_fifo_q;
 // wr_counter
 always_ff @ (posedge clk or posedge rst)
 begin
@@ -1215,15 +1217,21 @@ begin
     wr_counter <=#Tp wr_counter + 1'b1;
 end
 
-  always_ff @(posedge clk)
-    if ( wr_fifo )
-      data_rcvd[wr_counter] <= data_for_fifo;
+always_ff @(posedge clk)
+  if ( wr_fifo )
+    data_rcvd[wr_counter] <= data_for_fifo;
 
-  always_ff @(posedge clk) begin
-    data_rcvd_valid <= 1'b0;
-    if ( go_rx_eof )
-      data_rcvd_valid <= 1'b1;
+always_ff @(posedge clk) begin
+  wr_fifo_q <= wr_fifo;
+  rx_dvalid_o <= {wr_fifo, wr_fifo_q} == 2'b01;
+end
+
+
+generate;
+  for(genvar i=0; i<80; i=i+8) begin
+    assign rx_data_o[i+7:i] = data_rcvd[9-i/8];
   end
+endgenerate
 
 
 
@@ -1562,14 +1570,14 @@ begin
 end
 
 
-assign tx_successful = transmitter & go_rx_inter & (~go_error_frame) & (~error_frame_ended) & (~overload_frame_ended) & (~arbitration_lost);
+assign go_tx_succeed = transmitter & go_rx_inter & (~go_error_frame) & (~error_frame_ended) & (~overload_frame_ended) & (~arbitration_lost);
 
 
 always @ (posedge clk or posedge rst)
 begin
   if (rst)
     need_to_tx <= 1'b0;
-  else if (tx_successful | reset_mode | (abort_tx & (~transmitting)) | ((~tx_state) & tx_state_q & single_shot_transmission) | go_tx_fail)
+  else if (go_tx_succeed | reset_mode | (abort_tx & (~transmitting)) | ((~tx_state) & tx_state_q & single_shot_transmission) | go_tx_failed)
     need_to_tx <=#Tp 1'h0;
   else if (tx_request & sample_point)
     need_to_tx <=#Tp 1'b1;
@@ -1578,8 +1586,9 @@ end
 
 
 assign go_early_tx = (~listen_only_mode) & need_to_tx & (~tx_state) & (~suspend | (susp_cnt == 3'h7)) & sample_point & (~sampled_bit) & (rx_idle | last_bit_of_inter);
-assign go_tx       = (~listen_only_mode) & need_to_tx & (~tx_state) & (~suspend | (sample_point & (susp_cnt == 3'h7))) & (go_early_tx | rx_idle) & (frame_tx_try_cnt != MAX_FRAME_TX_ERR);
-assign go_tx_fail  = (~listen_only_mode) & need_to_tx & (~tx_state) & (~suspend | (sample_point & (susp_cnt == 3'h7))) & (go_early_tx | rx_idle) & (frame_tx_try_cnt == MAX_FRAME_TX_ERR);
+assign go_tx       = (~listen_only_mode) & need_to_tx & (~tx_state) & (~suspend | (sample_point & (susp_cnt == 3'h7))) & (go_early_tx | rx_idle);
+assign go_tx_failed  = (~listen_only_mode) & need_to_tx & (~tx_state) & sample_point & error_frame & (frame_tx_try_cnt == MAX_FRAME_TX_ERR);
+
 // go_early_tx latched (for proper bit_de_stuff generation)
 always @ (posedge clk or posedge rst)
 begin
@@ -1795,7 +1804,7 @@ begin
       if (set_reset_mode) begin
         tx_err_cnt <=#Tp 9'd128;
       end
-      else if ((tx_err_cnt > 9'd0) & (tx_successful | bus_free)) begin
+      else if ((tx_err_cnt > 9'd0) & (go_tx_succeed | bus_free)) begin
         tx_err_cnt <=#Tp tx_err_cnt - 1'h1;
       end else if (transmitter & (~arbitration_lost))
         begin
@@ -1815,7 +1824,7 @@ always_ff @(posedge clk or posedge rst) begin
   if (rst) begin
     frame_tx_try_cnt <= 0;
   end else begin
-    if (set_reset_mode | go_tx_fail | (tx_request & sample_point))
+    if (set_reset_mode | go_tx_failed | (tx_request & sample_point))
       frame_tx_try_cnt <= 0;
     else if(go_tx && frame_tx_try_cnt != MAX_FRAME_TX_ERR)
         frame_tx_try_cnt <=#Tp frame_tx_try_cnt + 1;

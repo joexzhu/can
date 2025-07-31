@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-////  can_simple_testbench.v                                             ////
+////  can_simple_testbench.v                                      ////
 ////                                                              ////
 ////                                                              ////
 ////  This file is part of the CAN Protocol Controller            ////
@@ -98,7 +98,8 @@ reg         rst;
 reg         rx;
 wire        tx;
 wire        tx_i;
-reg         bus_off_on = 0;
+reg         bus_off_on = 1;
+reg         bus_off_on2 = 1;
 wire        irq;
 wire        clkout;
 
@@ -112,10 +113,12 @@ reg         extended_mode;
 
 event       igor;
 
-wire [79:0] rx_data;
-wire [63:0] tx_data = 64'h55AA_55AA_55AA_55AA;
+wire [79:0] rx_data, rx_data2;
+reg  [63:0] tx_data = 64'h55AA_55AA_55AA_55AA;
 wire [10:0] tx_id = {8'hEA, 3'h2};
 reg  tx_start_strobe = 0;
+wire tx_succeed, tx_failed;
+
 can_simple_top i_can_top
 (
   .clk_i(clk),
@@ -126,45 +129,25 @@ can_simple_top i_can_top
   .tx_id(tx_id),
   .tx_data(tx_data),
   .tx_start_strobe(tx_start_strobe),
+  .tx_succeed(tx_succeed),
+  .tx_failed(tx_failed),
   .rx_data(rx_data)
 );
 
 // Instantiate can_top module 2
-can_top i_can_top2
-( 
-`ifdef CAN_WISHBONE_IF
-  .wb_clk_i(wb_clk_i),
-  .wb_rst_i(wb_rst_i),
-  .wb_dat_i(wb_dat_i),
-  .wb_dat_o(wb_dat2_o),
-  .wb_cyc_i(wb_cyc_i),
-  .wb_stb_i(wb_stb2_i),
-  .wb_we_i(wb_we_i),
-  .wb_adr_i(wb_adr_i),
-  .wb_ack_o(wb_ack2_o),
-`else
-  .cs_can_i(cs_can2),
-  .rst_i(rst_i),
-  .ale_i(ale2_i),
-  .rd_i(rd2_i),
-  .wr_i(wr2_i),
-  .port_0_io(port_0),
-`endif
+can_simple_top i_can_top2
+(
   .clk_i(clk),
   .rx_i(rx_and_tx),
   .tx_o(tx2_i),
-  .bus_off_on(bus_off2_on),
-  .irq_on(),
-  .clkout_o(clkout)
+  .rst_i(rst),
 
-  // Bist
-`ifdef CAN_BIST
-  ,
-  // debug chain signals
-  .mbist_si_i(1'b0),       // bist scan serial in
-  .mbist_so_o(),           // bist scan serial out
-  .mbist_ctrl_i(3'b001)    // mbist scan {enable, clock, reset}
-`endif
+  .tx_id(tx_id),
+  .tx_data(tx_data),
+  // .tx_start_strobe(tx_start_strobe),
+  // .tx_succeed(tx_succeed),
+  // .tx_failed(tx_failed),
+  .rx_data(rx_data2)
 );
 
 
@@ -173,7 +156,7 @@ wire tx_tmp1;
 wire tx_tmp2;
 
 assign tx_tmp1 = bus_off_on?  tx_i  : 1'b1;
-assign tx_tmp2 = bus_off2_on? tx2_i : 1'b1;
+assign tx_tmp2 = bus_off_on2? tx2_i : 1'b1;
 
 assign tx = tx_tmp1 & tx_tmp2;
 
@@ -211,6 +194,17 @@ initial begin
   rst = 0;
   repeat(50) @(posedge clk);
   @(igor)
+ 
+  @(posedge clk);
+  tx_start_strobe = 1;
+  @(posedge clk);
+  tx_start_strobe = 0;
+
+  wait(tx_succeed | tx_failed);
+
+  repeat(50) @(posedge clk);
+  tx_data = 64'h1234_5678_ABCD_EF43;
+
   @(posedge clk);
   tx_start_strobe = 1;
   @(posedge clk);
@@ -1235,7 +1229,7 @@ task write_register2;
       wb_cyc_i = 1;
       wb_stb2_i = 1;
       wb_we_i = 1;
-      wait (wb_ack2_o);
+      // wait (wb_ack2_o);
       @ (posedge wb_clk_i);
       #1; 
       wb_adr_i = 'hz;

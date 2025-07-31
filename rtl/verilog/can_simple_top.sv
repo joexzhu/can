@@ -27,7 +27,10 @@ module can_simple_top
   input [10:0] tx_id,
   input [63:0] tx_data,
   input  tx_start_strobe,
-  output [63:0] rx_data
+  output reg tx_succeed,
+  output reg tx_failed,
+  output [79:0] rx_data,
+  output rx_dvalid
 
   // bus_off_on,
 
@@ -97,7 +100,7 @@ wire         extended_mode = 1'b0;
 
 /* This section is for BASIC and EXTENDED mode */
 /* Acceptance code register */
-wire   [7:0] acceptance_code_0=8'h55;
+wire   [7:0] acceptance_code_0=8'hea;
 
 /* Acceptance mask register */
 wire   [7:0] acceptance_mask_0=8'hFF;
@@ -181,7 +184,7 @@ wire   [7:0] data_in;
 reg          rx_sync_tmp;
 reg          rx_sync;
 
-
+wire  go_tx_failed, go_tx_succeed;
 reg [3:0] auto_restmode_count = 4'd0;
 
 always_ff @(posedge clk_i) begin
@@ -196,10 +199,23 @@ always_ff @(posedge clk_i) begin
 end
 
 always_ff @(posedge clk_i) begin
-    if (tx_start_strobe)
+    if (tx_start_strobe) begin
       tx_request <= 1'b1;
-    else if ( tx_request & sample_point )
+    end else if ( tx_request & sample_point ) begin
       tx_request <= 1'b0;
+    end
+end
+
+always_ff @(posedge clk_i) begin
+    if ( tx_request & sample_point ) begin
+      tx_succeed <= 1'b0;
+      tx_failed  <= 1'b0;
+  end else begin
+      if ( go_tx_succeed )
+        tx_succeed <= 1'b1;
+      if ( go_tx_failed )
+        tx_failed <= 1'b1;
+  end
 end
 
 /* Connecting can_btl module */
@@ -243,8 +259,7 @@ can_btl i_can_btl
 
 );
 
-
-
+wire data_rcvd_valid;
 can_simple_bsp i_can_bsp
 (
   .clk(clk_i),
@@ -284,12 +299,6 @@ can_simple_bsp i_can_bsp
   /* Error Warning Limit register */
   .error_warning_limit(error_warning_limit),
 
-  /* Rx Error Counter register */
-  // .we_rx_err_cnt(we_rx_err_cnt),
-
-  /* Tx Error Counter register */
-  // .we_tx_err_cnt(we_tx_err_cnt),
-
   /* Clock Divider register */
   .extended_mode(extended_mode),
 
@@ -307,7 +316,8 @@ can_simple_bsp i_can_bsp
   .tx_err_cnt({tx_err_cnt_dummy, tx_err_cnt[7:0]}),   // The MSB is not displayed. It is just used for easier calculation (no counter overflow).
   .transmit_status(transmit_status),
   .receive_status(receive_status),
-  .tx_successful(tx_successful),
+  .go_tx_succeed(go_tx_succeed),
+  .go_tx_failed(go_tx_failed),
   .need_to_tx(need_to_tx),
   .overrun(overrun),
   .info_empty(info_empty),
@@ -359,19 +369,14 @@ can_simple_bsp i_can_bsp
   .tx_next(tx_next),
   .bus_off_on(bus_off_on),
 
+   .rx_data_o(rx_data),
+   .rx_dvalid_o(rx_dvalid),
+
   .go_overload_frame(go_overload_frame),
   .go_error_frame(go_error_frame),
   .go_tx(go_tx),
   .send_ack(send_ack)
 
-
-// `ifdef CAN_BIST
-//   ,
-//   /* BIST signals */
-//   .mbist_si_i(mbist_si_i),
-//   .mbist_so_o(mbist_so_o),
-//   .mbist_ctrl_i(mbist_ctrl_i)
-// `endif
 );
 
 
