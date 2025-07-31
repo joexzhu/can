@@ -116,8 +116,6 @@ module can_simple_bsp
   receive_status,
   go_tx_succeed,
   need_to_tx,
-  overrun,
-  info_empty,
   set_bus_error_irq,
   set_arbitration_lost_irq,
   arbitration_lost_capture,
@@ -241,8 +239,6 @@ output        transmit_status;
 output        receive_status;
 output        go_tx_succeed;
 output        need_to_tx;
-output        overrun;
-output        info_empty;
 output        set_bus_error_irq;
 output        set_arbitration_lost_irq;
 output  [4:0] arbitration_lost_capture;

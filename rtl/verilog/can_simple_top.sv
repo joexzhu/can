@@ -18,32 +18,22 @@
 
 module can_simple_top
 ( 
-
   input  clk_i,
   input  rst_i,
   input  rx_i,
   output tx_o,
 
-  input [10:0] tx_id,
   input [63:0] tx_data,
   input  tx_start_strobe,
   output reg tx_succeed,
   output reg tx_failed,
   output [79:0] rx_data,
   output rx_dvalid
-
-  // bus_off_on,
-
-  // irq_on,
-  // clkout_o
-
 );
 
 parameter Tp = 1;
 
 wire rst = rst_i;
-
-// output       bus_off_on;
 
 reg          data_out_fifo_selected;
 
@@ -102,8 +92,9 @@ wire         extended_mode = 1'b0;
 /* Acceptance code register */
 wire   [7:0] acceptance_code_0=8'hea;
 
+wire   [10:0] tx_id = {8'hea, 3'h2};
 /* Acceptance mask register */
-wire   [7:0] acceptance_mask_0=8'hFF;
+wire   [7:0] acceptance_mask_0=8'h00;//8'hFF;
 /* End: This section is for BASIC and EXTENDED mode */
 
 
@@ -161,8 +152,6 @@ wire         transmit_status;
 wire         receive_status;
 wire         tx_successful;
 wire         need_to_tx;
-wire         overrun;
-wire         info_empty;
 wire         set_bus_error_irq;
 wire         set_arbitration_lost_irq;
 wire   [4:0] arbitration_lost_capture;
@@ -319,8 +308,6 @@ can_simple_bsp i_can_bsp
   .go_tx_succeed(go_tx_succeed),
   .go_tx_failed(go_tx_failed),
   .need_to_tx(need_to_tx),
-  .overrun(overrun),
-  .info_empty(info_empty),
   .set_bus_error_irq(set_bus_error_irq),
   .set_arbitration_lost_irq(set_arbitration_lost_irq),
   .arbitration_lost_capture(arbitration_lost_capture),
