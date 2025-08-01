@@ -23,6 +23,7 @@ module can_simple_top
   input  rx_i,
   output tx_o,
 
+  input [10:0] tx_id,
   input [63:0] tx_data,
   input  tx_start_strobe,
   output reg tx_succeed,
@@ -31,6 +32,7 @@ module can_simple_top
   output rx_dvalid
 );
 
+wire tx_local;
 parameter Tp = 1;
 
 wire rst = rst_i;
@@ -68,8 +70,8 @@ wire         read_error_code_capture_reg;
 wire   [7:0] error_capture_code;
 
 /* Bus Timing 0 register */
-wire   [5:0] baud_r_presc = 6'd0;
-wire   [1:0] sync_jump_width=2'b1;
+wire   [5:0] baud_r_presc = 6'd2;
+wire   [1:0] sync_jump_width = 2'd2;
 
 /* Bus Timing 1 register */
 wire   [3:0] time_segment1=4'h3;
@@ -92,7 +94,7 @@ wire         extended_mode = 1'b0;
 /* Acceptance code register */
 wire   [7:0] acceptance_code_0=8'hea;
 
-wire   [10:0] tx_id = {8'hea, 3'h2};
+// wire   [10:0] tx_id = {8'hea, 3'h2};
 /* Acceptance mask register */
 wire   [7:0] acceptance_mask_0=8'h00;//8'hFF;
 /* End: This section is for BASIC and EXTENDED mode */
@@ -170,6 +172,7 @@ wire         we;
 wire   [7:0] addr;
 wire   [7:0] data_in;
 
+(* IOB="TRUE" *)
 reg          rx_sync_tmp;
 reg          rx_sync;
 
@@ -213,7 +216,7 @@ can_btl i_can_btl
   .clk(clk_i),
   .rst(rst),
   .rx(rx_sync), 
-  .tx(tx_o),
+  .tx(tx_local),
 
   /* Bus Timing 0 register */
   .baud_r_presc(baud_r_presc),
@@ -352,7 +355,8 @@ can_simple_bsp i_can_bsp
   /* End: Tx data registers */
   
   /* Tx signal */
-  .tx(tx_o),
+  .tx(tx_local),
+  .tx_IOB(tx_o),
   .tx_next(tx_next),
   .bus_off_on(bus_off_on),
 

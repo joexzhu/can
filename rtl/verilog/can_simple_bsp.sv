@@ -165,6 +165,7 @@ module can_simple_bsp
 
   /* Tx signal */
   tx,
+  tx_IOB,
   tx_next,
   bus_off_on,
 
@@ -287,6 +288,7 @@ input   [7:0] tx_data_12;
 
 /* Tx signal */
 output        tx;
+output        tx_IOB;
 output        tx_next;
 output        bus_off_on;
 
@@ -359,6 +361,8 @@ reg     [1:0] overload_request_cnt;
 reg     [2:0] overload_cnt1;
 reg     [2:0] overload_cnt2;
 reg           tx;
+(* IOB="TRUE" *)
+reg           tx_IOB;
 reg           crc_err;
 
 reg           arbitration_lost;
@@ -1445,12 +1449,18 @@ end
 
 always @ (posedge clk or posedge rst)
 begin
-  if (rst)
+  if (rst) begin
     tx <= 1'b1;
-  else if (reset_mode)
+    tx_IOB <= 1'b1;
+  end
+  else if (reset_mode) begin
     tx <= 1'b1;
-  else if (tx_point)
+    tx_IOB <= 1'b1;
+  end
+  else if (tx_point) begin
     tx <=#Tp tx_next;
+    tx_IOB <= #Tp tx_next;
+  end
 end
 
 
