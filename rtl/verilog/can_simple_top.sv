@@ -37,13 +37,6 @@ parameter Tp = 1;
 
 wire rst = rst_i;
 
-reg          data_out_fifo_selected;
-
-
-wire   [7:0] data_out_fifo;
-wire   [7:0] data_out_regs;
-
-
 /* Mode register */
 reg          reset_mode = 1'b0;
 wire         listen_only_mode = 1'b0;
@@ -76,7 +69,7 @@ wire   [1:0] sync_jump_width = 2'd2;
 /* Bus Timing 1 register */
 wire   [3:0] time_segment1=4'h3;
 wire   [2:0] time_segment2=3'h3;
-wire         triple_sampling = 1'b0;
+wire         triple_sampling = 1'b1;
 
 /* Error Warning Limit register */
 wire   [7:0] error_warning_limit = 8'd8;
@@ -167,8 +160,6 @@ wire         go_error_frame;
 wire         go_tx;
 wire         send_ack;
 
-wire         rst;
-wire         we;
 wire   [7:0] addr;
 wire   [7:0] data_in;
 
@@ -371,17 +362,6 @@ can_simple_bsp i_can_bsp
 );
 
 
-
-// Multiplexing wb_dat_o from registers and rx fifo
-always @ (extended_mode or addr or reset_mode)
-begin
-  if (extended_mode & (~reset_mode) & ((addr >= 8'd16) && (addr <= 8'd28)) | (~extended_mode) & ((addr >= 8'd20) && (addr <= 8'd29)))
-    data_out_fifo_selected = 1'b1;
-  else
-    data_out_fifo_selected = 1'b0;
-end
-
-
 always @ (posedge clk_i or posedge rst)
 begin
   if (rst)
@@ -394,6 +374,31 @@ begin
       rx_sync_tmp <=#Tp rx_i;
       rx_sync     <=#Tp rx_sync_tmp;
     end
+end
+
+// Debug only counters
+(* DONT_TOUCH = "yes" *) reg [23:0] tx_success_cnt, rx_success_cnt;
+(* DONT_TOUCH = "yes" *) reg [23:0] tx_fail_cnt, rx_fail_cnt;
+
+always @ (posedge clk_i or posedge rst)
+begin
+  if (rst) begin
+    rx_success_cnt <= 0;
+    tx_success_cnt <= 0;
+    tx_fail_cnt <= 0;
+    rx_fail_cnt <= 0;
+  end else begin
+    if ( rx_dvalid )
+      rx_success_cnt <= rx_success_cnt + 1;
+    if ( go_tx_succeed )
+      tx_success_cnt <= tx_success_cnt + 1;
+    if ( go_error_frame ) begin
+      if ( transmitter )
+        tx_fail_cnt <= tx_fail_cnt + 1;
+      else
+        rx_fail_cnt <= rx_fail_cnt + 1;
+    end
+  end
 end
 
 endmodule
