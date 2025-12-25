@@ -63,12 +63,12 @@ wire         read_error_code_capture_reg;
 wire   [7:0] error_capture_code;
 
 /* Bus Timing 0 register */
-wire   [5:0] baud_r_presc = 6'd2;
-wire   [1:0] sync_jump_width = 2'd2;
+wire   [5:0] baud_r_presc = 6'd3;
+wire   [1:0] sync_jump_width = 2'd3;
 
 /* Bus Timing 1 register */
-wire   [3:0] time_segment1=4'h3;
-wire   [2:0] time_segment2=3'h3;
+wire   [3:0] time_segment1=4'h9;
+wire   [2:0] time_segment2=3'h2;
 wire         triple_sampling = 1'b1;
 
 /* Error Warning Limit register */

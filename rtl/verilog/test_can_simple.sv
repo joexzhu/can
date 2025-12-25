@@ -60,7 +60,7 @@ always_ff @(posedge clk) begin
     sec_pulse <= 0;
     if ( rst_reg ) begin
         sec_count <= 2;
-    end else if ( sec_count < 26'd50_000_000-1 ) begin
+    end else if ( sec_count < 26'd50_000_0-1 ) begin
         sec_count <= sec_count + 1;
     end else begin
         sec_count <= 0;

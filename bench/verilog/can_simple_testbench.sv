@@ -88,6 +88,8 @@ reg  [63:0] tx_data = 64'h55AA_55AA_55AA_55AA;
 
 reg  tx_start_strobe = 0;
 wire tx_succeed, tx_failed;
+wire [10:0] id1 = {8'hea, 3'd2};
+wire [10:0] id2 = {8'h6a, 3'd2};
 
 can_simple_top i_can_top
 (
@@ -96,6 +98,7 @@ can_simple_top i_can_top
   .tx_o(tx_i),
   .rst_i(rst),
 
+  .tx_id(id1),
   .tx_data(tx_data),
   .tx_start_strobe(tx_start_strobe),
   .tx_succeed(tx_succeed),
@@ -112,6 +115,7 @@ can_simple_top i_can_top2
   .tx_o(tx2_i),
   .rst_i(rst),
 
+  .tx_id(id2),
   .tx_data(tx_data),
   // .tx_start_strobe(tx_start_strobe),
   // .tx_succeed(tx_succeed),
@@ -137,13 +141,15 @@ initial
 begin
   clk=0;
   // forever #20 clk = ~clk;
-  forever #31.25 clk = ~clk;
+  // forever #31.25 clk = ~clk; // 16 MHz
+  // forever #10.417 clk = ~clk;   // 48 MHz
+  forever #8.92857 clk = ~clk;   // 56 MHz
 end
 
 initial
 begin
-  clk2=0;
-  forever #29.6875 clk2 = ~clk2;
+  clk2=1;
+  forever #28.5 clk2 = ~clk2;
 end
 
 initial begin

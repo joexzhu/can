@@ -1,0 +1,16 @@
+# Vivado simulation files
+xsim.dir/
+*.log
+*.pb
+*.jou
+*.wdb
+*.vcd
+*.str
+
+# Backup files
+*.backup.jou
+*.backup.log
+
+# Other simulation artifacts
+*.sh
+!run_sim.sh

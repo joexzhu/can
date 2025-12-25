@@ -254,7 +254,7 @@ wire          sync_window;
 wire          resync;
 
 
-assign preset_cnt = (baud_r_presc + 1'b1)<<1;        // (BRP+1)*2
+assign preset_cnt = (baud_r_presc + 1'b1);//<<1;        // (BRP+1)*2
 assign hard_sync  =   (rx_idle | rx_inter)    & (~rx) & sampled_bit & (~hard_sync_blocked);  // Hard synchronization
 assign resync     =  (~rx_idle) & (~rx_inter) & (~rx) & sampled_bit & (~sync_blocked);       // Re-synchronization
 
